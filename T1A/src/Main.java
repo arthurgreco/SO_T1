@@ -10,7 +10,7 @@ public class Main {
         Console console = new Console(gp, gm);
 
         System.out.println(
-                "SO pronto. Comandos: new <prog>, rm <pid>, ps, dump <pid>, dumpM <i> <f>, exec <pid>, traceOn, traceOff, exit");
+                "SO pronto!\n Comandos:\n new <prog>\n rm <pid>\n ps\n dump <pid>\n dumpM <i> <f>\n exec <pid>\n traceOn\n traceOff\n exit");
         console.loop(System.in);
     }
 }
