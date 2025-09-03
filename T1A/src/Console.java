@@ -4,7 +4,7 @@ import java.util.Scanner;
 public class Console {
     private final ProcessManager gp;
     private final GM gm;
-    private boolean trace = false; // ✅ flag para controlar o modo trace
+    private boolean trace = false; // flag para controlar o modo trace
 
     public Console(ProcessManager gp, GM gm) {
         this.gp = gp;
@@ -73,6 +73,20 @@ public class Console {
                         case "traceOff" -> {
                             trace = false;
                             System.out.println("Trace desativado.");
+                        }
+                        case "dumpM" -> {
+                            int ini = sc.nextInt();
+                            int fim = sc.nextInt();
+
+                            Memory m = ((PagingMemoryManager) gm).memoria();
+
+                            for (int ea = ini; ea <= fim; ea++) {
+                                System.out.println("M[" + ea + "] = " + m.readFisico(ea));
+                            }
+
+                            if (trace) {
+                                System.out.println("[TRACE] Dump de memória física de " + ini + " até " + fim);
+                            }
                         }
                         case "exit" -> {
                             break OUTER;

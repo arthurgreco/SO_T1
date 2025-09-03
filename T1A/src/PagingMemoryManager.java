@@ -67,4 +67,8 @@ public class PagingMemoryManager implements GM {
         int f = t[p];
         return mem.rangeFrame(f).ini + d;
     }
+
+    public Memory memoria() {
+        return mem;
+    }
 }
