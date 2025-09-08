@@ -4,7 +4,6 @@ import java.util.Scanner;
 public class Console {
     private final ProcessManager gp;
     private final GM gm;
-    private boolean trace = false; // flag para controlar o modo trace
 
     public Console(ProcessManager gp, GM gm) {
         this.gp = gp;
@@ -12,93 +11,76 @@ public class Console {
     }
 
     public void loop(InputStream in) {
-        try (Scanner sc = new Scanner(in)) {
-            OUTER: while (true) {
-                System.out.print("> ");
-                String cmd = sc.next();
-                try {
-                    switch (cmd) {
-                        case "new" -> {
-                            String nome = sc.next();
-                            PCB pcb = gp.criaProcesso(nome);
-                            if (pcb == null) {
-                                System.out.println("Falha: sem memória.");
-                            } else {
-                                System.out.println("Criado: " + pcb);
-                                if (trace) {
-                                    System.out
-                                            .println("[TRACE] Processo " + pcb.id + " criado com prog=" + pcb.nomeProg);
-                                }
-                            }
-                        }
-                        case "rm" -> {
-                            int id = sc.nextInt();
-                            gp.desalocaProcesso(id);
-                            System.out.println("Removido id=" + id);
-                            if (trace) {
-                                System.out.println("[TRACE] Processo " + id + " desalocado.");
-                            }
-                        }
-                        case "ps" -> {
-                            for (PCB p : gp.lista()) {
-                                System.out.println(p);
-                            }
-                        }
-                        case "dump" -> {
-                            int id = sc.nextInt();
-                            PCB p = gp.proc(id);
-                            if (p == null) {
-                                System.out.println("Processo não existe.");
-                            } else {
-                                for (int i = 0; i < 10; i++) {
-                                    int valor = gm.read(p.tabela, i);
-                                    System.out.println("L[" + i + "] = " + valor);
-                                }
-                                if (trace) {
-                                    System.out.println("[TRACE] Dump feito do processo " + id);
-                                }
-                            }
-                        }
-                        case "exec" -> {
-                            int id = sc.nextInt();
-                            gp.exec(id);
-                            if (trace) {
-                                System.out.println("[TRACE] Exec chamado para processo " + id);
-                            }
-                        }
-                        case "traceOn" -> {
-                            trace = true;
-                            System.out.println("Trace ativado.");
-                        }
-                        case "traceOff" -> {
-                            trace = false;
-                            System.out.println("Trace desativado.");
-                        }
-                        case "dumpM" -> {
-                            int ini = sc.nextInt();
-                            int fim = sc.nextInt();
+        Scanner sc = new Scanner(in);
+        System.out.println(helpText());
+        while (true) {
+            System.out.print("> ");
+            if (!sc.hasNextLine()) break;
+            String line = sc.nextLine().trim();
+            if (line.isEmpty()) continue;
 
-                            Memory m = ((PagingMemoryManager) gm).memoria();
+            String[] parts = line.split("\\s+");
+            String cmd = parts[0];
 
-                            for (int ea = ini; ea <= fim; ea++) {
-                                System.out.println("M[" + ea + "] = " + m.readFisico(ea));
-                            }
-
-                            if (trace) {
-                                System.out.println("[TRACE] Dump de memória física de " + ini + " até " + fim);
-                            }
+            try {
+                switch (cmd) {
+                    case "help":
+                        System.out.println(helpText());
+                        break;
+                    case "exit":
+                        System.out.println("bye!");
+                        return;
+                    case "new":
+                        if (parts.length < 2) {
+                            System.out.println("Uso: new <prog>");
+                            break;
                         }
-                        case "exit" -> {
-                            break OUTER;
+                        gp.criaProcesso(parts[1]);
+                        break;
+                    case "rm":
+                        if (parts.length < 2) {
+                            System.out.println("Uso: rm <pid>");
+                            break;
                         }
-                        default -> System.out.println("Comando desconhecido.");
-                    }
-                } catch (MemoryAccessException e) {
-                    System.out.println("Erro de memória: " + e.getMessage());
-                } catch (IllegalArgumentException e) {
-                    System.out.println("Erro: " + e.getMessage());
+                        gp.rm(Integer.parseInt(parts[1]));
+                        break;
+                    case "ps":
+                        gp.prontos().forEach(p -> System.out.println(p.toString()));
+                        break;
+                    case "setDelta":
+                        if (parts.length < 2) { System.out.println("Uso: setDelta <n>"); break; }
+                        gp.setQuantum(Integer.parseInt(parts[1]));
+                        System.out.println("Delta/quantum ajustado.");
+                        break;
+                    case "execRR":
+                        int d = -1;
+                        if (parts.length >= 2) d = Integer.parseInt(parts[1]);
+                        gp.execRR(d);
+                        break;
+                    case "exec":
+                        if (parts.length < 2) { System.out.println("Uso: exec <pid>"); break; }
+                        gp.exec(Integer.parseInt(parts[1]));
+                        break;
+                    default:
+                        System.out.println("Comando desconhecido. Digite 'help'.");
                 }
+            } catch (Exception e) {
+                System.out.println("Erro: " + e.getMessage());
             }
         }
+    }
+
+    private String helpText() {
+        return String.join("\n",
+            "Comandos:",
+            "  new <prog>      - cria processo a partir do programa do repositório",
+            "  rm <pid>        - remove processo",
+            "  ps              - lista prontos/rodando",
+            "  setDelta <n>    - define quantum (fatia) em instruções",
+            "  execRR <delta>  - roda round-robin com preempção (usa delta atual se omitido)",
+            "  exec <pid>      - executa processo sem preempção até terminar",
+            "  help            - mostra este texto",
+            "  exit            - sai"
+        );
     }
 }
